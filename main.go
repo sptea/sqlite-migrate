@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,7 +12,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var databaseName string
+var databasePath string
 var migrateFileDir string
 
 func readFileList() {
@@ -29,7 +30,6 @@ func readFileList() {
 			executeTargetSQL(filepath.Join(migrateFileDir, fileName))
 		}
 	}
-
 }
 
 func executeTargetSQL(path string) {
@@ -41,7 +41,7 @@ func executeTargetSQL(path string) {
 
 	buffer, err := ioutil.ReadAll(file)
 
-	db, err := sql.Open("sqlite3", databaseName)
+	db, err := sql.Open("sqlite3", databasePath)
 	if err != nil {
 		panic(err)
 	}
@@ -56,7 +56,7 @@ func executeTargetSQL(path string) {
 	if err != nil {
 		transaction.Rollback()
 		fmt.Println("rollback")
-		panic(err)
+		os.Exit(0)
 	}
 
 	transaction.Commit()
@@ -65,8 +65,34 @@ func executeTargetSQL(path string) {
 }
 
 func main() {
-	databaseName = "./test.db"
 	migrateFileDir = "./migration"
+
+	flag.Parse()
+	var argDbPath = flag.Arg(0)
+	var argMigrateDir = flag.Arg(1)
+
+	if argDbPath == "" {
+		fmt.Println("DB path must be passed to argument")
+		os.Exit(0)
+	}
+
+	dbDir := filepath.Dir(argDbPath)
+	fileInfo, err := os.Stat(dbDir)
+	if err != nil || !fileInfo.IsDir() {
+		fmt.Println("Database directory does not exist (" + dbDir + ")")
+		os.Exit(0)
+	}
+	databasePath = argDbPath
+
+	if argMigrateDir != "" {
+		fileInfo, err := os.Stat(argMigrateDir)
+		if err != nil || !fileInfo.IsDir() {
+			fmt.Println("Migration file directory does not exist (" + argMigrateDir + ")")
+			os.Exit(0)
+		}
+
+		migrateFileDir = argMigrateDir
+	}
 
 	readFileList()
 }
