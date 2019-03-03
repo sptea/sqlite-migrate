@@ -126,7 +126,7 @@ func readAndExecuteFiles() {
 		if !file.IsDir() && reg.MatchString(fileName) {
 			fmt.Println("\n******" + fileName + "******")
 
-			var newVersion = fileName[0:14] // yyyyMMdd-HHmmss
+			var newVersion = fileName[0:15] // yyyyMMdd-HHmmss
 			// Skip if the file is older version
 			if newVersion <= migratedVersion {
 				fmt.Println("Past version: skipped")
